@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\Flights\PriceSummaryController;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Client\ConnectionException;
@@ -159,7 +160,7 @@ class Flight extends Model
 
             //update the local db with the order confirmation
             $booking = Booking::where('id', $bookingId)->first();
-            $booking->booking_info = $orderConfirmation;
+            $booking->booking_info = json_encode($orderResponse);
             $booking->status = Booking::STATUS_CONFIRMED;
             $booking->save();
 //            return response()->json(['status' => true, 'message' => 'No flight offers provided.'], 400);
@@ -169,8 +170,15 @@ class Flight extends Model
 //                $booking->status = 'original';
 //                $booking->save();
 //            }
+            $emailSample = new PriceSummaryController();
+            $emailResult = $emailSample->sendTicket($orderConfirmation);
 
-            return response()->json(['status' => true, 'message' => 'Flight order created successfully.', 'orderConfirmation' => $orderConfirmation], 200);            // return response()->json($orderConfirmation);
+            return response()->json([
+                'status' => true,
+                'message' => 'Flight order created successfully.',
+                'orderConfirmation' => $orderConfirmation,
+                'emailResult' => $emailResult
+            ], 200);
         } catch (ConnectionException $e) {
             return response()->json(['status' => false, 'message' => 'Connect error' . $e->getMessage()], 500);
         } catch (\Exception $e) {

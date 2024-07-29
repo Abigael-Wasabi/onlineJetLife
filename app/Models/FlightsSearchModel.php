@@ -8,6 +8,9 @@ use GuzzleHttp\Client;
 
 class FlightsSearchModel
 {
+    protected mixed $amadeusApiKey;
+    protected mixed $amadeusApiSecret;
+    protected string $amadeusApiUrl = 'https://test.api.amadeus.com/';
 
     public $form_type;
 
@@ -40,6 +43,8 @@ class FlightsSearchModel
     public function __construct()
     {
         $this->initializeSearch();
+        $this->amadeusApiKey = env('AMADEUS_API_KEY');
+        $this->amadeusApiSecret = env('AMADEUS_API_SECRET');
     }
 
     public function parseUriString($args)
@@ -102,7 +107,7 @@ class FlightsSearchModel
         }
         //SEnd request to IP STack
         $client = new Client();
-        $apiKey = 'YOUR_IPSTACK_API_KEY';
+        $apiKey = 'IP_STACK_API_KEY';
         $response = $client->get("http://api.ipstack.com/{$ip}?access_key={$apiKey}");
         $locationData = json_decode($response->getBody(), true);
 

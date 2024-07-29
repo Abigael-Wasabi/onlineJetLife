@@ -94,25 +94,124 @@ class CarsTransfersController extends Controller
         }
     }
 
+//{
+//"data": {
+//"note": "Please be on time",
+//"passengers": [
+//{
+//"firstName": "Abi",
+//"lastName": "Wasabi",
+//"title": "MRS",
+//"contacts": {
+//"phoneNumber": "+33123456789",
+//"email": "abi@gmail.com"
+//},
+//"billingAddress": {
+//    "line": "Avenue de la Bourdonnais, 19",
+//          "zip": "75007",
+//          "countryCode": "FR",
+//          "cityName": "Paris"
+//        }
+//      }
+//    ],
+//    "agency": {
+//    "contacts": [
+//        {
+//            "email": {
+//            "address": "abc@test.com"
+//          }
+//        }
+//      ]
+//    },
+//    "payment": {
+//    "methodOfPayment": "CREDIT_CARD",
+//      "creditCard": {
+//        "number": "4111111111111111",
+//        "holderName": "ABI WASABI",
+//        "vendorCode": "VI",
+//        "expiryDate": "1024",
+//        "cvv": "123"
+//      }
+//    },
+//    "extraServices": [
+//      {
+//          "code": "EWT",
+//        "itemId": "EWT0291"
+//      }
+//    ],
+//    "equipment": [
+//      {
+//          "code": "BBS"
+//      }
+//    ],
+//    "corporation": {
+//    "address": {
+//        "line": "5 Avenue Anatole France",
+//        "zip": "75007",
+//        "countryCode": "FR",
+//        "cityName": "Paris"
+//      },
+//      "info": {
+//        "AU": "FHOWMD024",
+//        "CE": "280421GH"
+//      }
+//    },
+//    "startConnectedSegment": {
+//    "transportationType": "FLIGHT",
+//      "transportationNumber": "AF380",
+//      "departure": {
+//        "uicCode": "7400001",
+//        "iataCode": "CDG",
+//        "localDateTime": "2024-08-01T08:30:00"
+//      },
+//      "arrival": {
+//        "uicCode": "7400001",
+//        "iataCode": "CDG",
+//        "localDateTime": "2024-08-01T10:30:00"
+//      }
+//    },
+//    "endConnectedSegment": {
+//    "transportationType": "FLIGHT",
+//      "transportationNumber": "AF380",
+//      "departure": {
+//        "uicCode": "7400001",
+//        "iataCode": "CDG",
+//        "localDateTime": "2024-08-01T11:30:00"
+//      },
+//      "arrival": {
+//        "uicCode": "7400001",
+//        "iataCode": "CDG",
+//        "localDateTime": "2024-08-01T13:30:00"
+//      }
+//    }
+//  }
+//}
+
     public function bookingTransfer(Request $request): JsonResponse
     {
         try{
-            $transferId  = $request->input('transferId');
+            $transferId  = $request->query('offerId');//getting the offerId from query string
             $travelerInfo = $request->input('transferInfo');
             $paymentInfo = $request->input('paymentInfo');
 
             $accessToken = $this->getAccessToken();
 
+            $url = $this->amadeusApiUrl . 'v1/ordering/transfer-orders?offerId=' . $transferId;
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$accessToken,
                 'Content-Type' => 'application/json',
-            ])->post($this->amadeusApiUrl.'v1/ordering/transfers-orders', [
+            ])->post($url, [
                 'data' => [
-                    'transferOffer' => [
-                        'id' => $transferId,
-                    ],
-                    'travelers' => $travelerInfo,
-                    'payments' => $paymentInfo,
+                    'note' => $travelerInfo['note'],
+                    'passengers' => $travelerInfo['passengers'],
+                    'agency' => $travelerInfo['agency'],
+                    'payment' => $paymentInfo['payment'],
+                    'extraServices' => $travelerInfo['extraServices'],
+                    'equipment' => $travelerInfo['equipment'],
+                    'corporation' => $travelerInfo['corporation'],
+                    'startConnectedSegment' => $travelerInfo['startConnectedSegment'],
+                    'endConnectedSegment' => $travelerInfo['endConnectedSegment']
                 ],
             ]);
 
@@ -136,18 +235,20 @@ class CarsTransfersController extends Controller
     public function transferManagement(Request $request, $orderId): JsonResponse
     {
         try {
-            $action = $request->input('action'); // action can be 'cancel' or 'update'
+            $confirmNbr = $request->query('confirmNbr');
+
+            if (!$confirmNbr) {
+                return response()->json(['error' => 'Confirmation number is required'], 400);
+            }
+
             $accessToken = $this->getAccessToken();
 
-            if ($action === 'cancel') {
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . $accessToken,
-                ])->delete($this->amadeusApiUrl . 'v1/booking/transfer-orders/' . $orderId);
-            } else {
-                // handle other actions like update if needed
-                // this part needs to be defined based on Amadeus API capabilities for transfer management
-                throw new \Exception('Unsupported action for transfer management');
-            }
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer '.$accessToken,
+                'Content-Type' => 'application/json',
+            ])->post($this->amadeusApiUrl.'v1/ordering/transfer-orders/' .$orderId. '/transfers/cancellation',[
+                'confirmNbr' => $confirmNbr,
+            ]);
 
             Log::info('Amadeus Transfer Management API Response', [
                 'status' => $response->status(),
@@ -156,20 +257,20 @@ class CarsTransfersController extends Controller
 
             if ($response->failed()) {
                 return response()->json([
-                    'error' => 'Failed to manage transfer',
+                    'error' => 'Failed to cancel transfer',
                     'details' => $response->json(),
                 ], $response->status());
             }
             return response()->json($response->json());
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to manage transfer', 'message' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to cancel transfer', 'message' => $e->getMessage()], 500);
         }
     }
 
     private function getAccessToken()
 {
     try {
-        $response = Http::asForm()->post('https://test.api.amadeus.com/v1/security/oauth2/token', [
+        $response = Http::asForm()->post('https://test.api.amadeus.com/v1/security/oauth2/token/', [
             'grant_type' => 'client_credentials',
             'client_id' => $this->amadeusApiKey,
             'client_secret' => $this->amadeusApiSecret,

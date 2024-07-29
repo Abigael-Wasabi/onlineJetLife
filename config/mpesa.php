@@ -44,15 +44,15 @@ return [
     'accounts' => [
         'staging' => [
             'sandbox' => true,
-            'key' => 'HyBuNkDccarATARGLhhklXJ0j6IxZxos9AAUkSY6dFjlVTcG',
-            'secret' => '4hJ6AvVzhTFZiMOpNfbkoFLKSWDh7iuJ4CIjT7iEEWBhNJLi4hCFuURiFUcdP78j',
+            'key' => env('MPESA_CONSUMER_KEY'),
+            'secret' => env('MPESA_CONSUMER_SECRET'),
             'initiator' => 'apitest363',
             'id_validation_callback' => 'http://example.com/callback?secret=some_secret_hash_key',
             'lnmo' => [
                 'paybill' => 174379,
-                'shortcode' => 174379,
-                'passkey' => 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919',
-                'callback' => 'http://localhost:8000/api/mpesa/callback',
+                'shortcode' => env('MPESA_SHORTCODE'),
+                'passkey' => env('MPESA_PASSKEY'),
+                'callback' => 'http://example.com/callback?secret=some_secret_hash_key',
             ]
         ],
 

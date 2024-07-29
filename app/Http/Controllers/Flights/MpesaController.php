@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Flights;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
+use App\Models\Booking;
 use App\Models\Payment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +17,7 @@ class MpesaController extends Controller
         $validated = $request->validate([
             'phone' => 'required|string',
             'amount' => 'required|numeric',
-            'order_id' => 'required|integer',
+            'flight_order_id' => 'required|integer',
         ]);
 
         $phone = $validated['phone'];
@@ -25,7 +25,7 @@ class MpesaController extends Controller
         $order_id = $validated['order_id'];
 
         // Check if the order exists
-        $orderExists = Order::find($order_id);
+        $orderExists = Booking::find($order_id);
         if (!$orderExists) {
             return response()->json(['error' => 'Order not found'], 404);
         }
@@ -81,7 +81,7 @@ class MpesaController extends Controller
 
             // If the transaction was successful, update the order status
             if ($resultCode == 0) {
-                $payment->order->update(['order_status' => 'completed']);
+                $payment->order->update(['order_status' => Booking::STATUS_COMPLETED]);
             }
         }
 

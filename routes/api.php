@@ -5,7 +5,9 @@ use App\Http\Controllers\Flights\AirportSearchController;
 use App\Http\Controllers\Flights\FlightOrderController;
 use App\Http\Controllers\Flights\FlightSearchController;
 use App\Http\Controllers\Flights\BookingController;
-use App\Http\Controllers\Flights\BkingController;
+use App\Http\Controllers\Flights\PriceSummaryController;
+use App\Http\Controllers\Flights\MpesaController;
+use App\Models\FlightsSearchModel;
 use App\Http\Controllers\Flights\SeatController;
 use App\Http\Controllers\Tours\DestinationController;
 use App\Http\Controllers\Cars\CarsTransfersController;
@@ -15,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('airports')->group(function () {
     Route::get('/all', [AirportSearchController::class, 'index']);
     Route::get('/search', [AirportSearchController::class, 'search']);
-//    Route::get('/nearest', [AirportSearchController::class, 'nearest']);
+    Route::get('/nearest', [FlightsSearchModel::class, 'getLocationBasedOnIP']);
 });
 //airlines
 Route::prefix('airlines')->group(function () {
@@ -36,6 +38,13 @@ Route::prefix('flights')->group(function () {
 //bookings
 Route::prefix('booking')->group(function () {
     Route::post('/store', [BookingController::class, 'store']);
+    Route::get('/price-summary/{bookingId}', [PriceSummaryController::class, 'priceSummary']);
+    Route::get('/send-ticket/{bookingId}', [PriceSummaryController::class, 'sendTicket']);
+});
+//payments
+Route::prefix('pay')->group(function () {
+    Route::post('/mpesa/initiate', [MpesaController::class, 'initiatePayment']);
+    Route::post('/mpesa/callback', [MpesaController::class, 'callback']);
 });
 //tours n destinations
 Route::prefix('destination-experience')->group(function () {
@@ -49,7 +58,7 @@ Route::prefix('destination-experience')->group(function () {
 });
 //cars n transfers
 Route::prefix('cars-and-transfers')->group(function () {
-    Route::post('/transfer-search', [CarsTransfersController::class, 'transferSearch']);
-    Route::post('/booking-transfer', [CarsTransfersController::class, 'bookingTransfer']);
-    Route::post('/transfer-management', [CarsTransfersController::class, 'transferManagement']);
+    Route::post('/search', [CarsTransfersController::class, 'transferSearch']);
+    Route::post('/booking', [CarsTransfersController::class, 'bookingTransfer']);
+    Route::post('/management/{orderId}/transfers/cancellation', [CarsTransfersController::class, 'transferManagement']);
 });

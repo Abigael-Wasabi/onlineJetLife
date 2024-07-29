@@ -38,6 +38,6 @@ class Booking extends Model
 
     public function seat()
     {
-        return $this->hasMany(Seat::class);
+        return $this->hasMany(Seats::class);
     }
 }

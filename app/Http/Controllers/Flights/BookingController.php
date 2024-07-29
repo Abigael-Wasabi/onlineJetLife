@@ -10,13 +10,14 @@ use App\Models\Seats;
 use App\Models\Flight;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class BookingController extends Controller
 {
     protected mixed $amadeusApiKey;
     protected mixed $amadeusApiSecret;
-    protected mixed $amadeusApiUrl = 'https://api.amadeus.com/';
+    protected mixed $amadeusApiUrl = 'https://test.api.amadeus.com/';
 
     public function __construct(){
         $this->amadeusApiKey = env('amadeus_api_key');
@@ -25,15 +26,17 @@ class BookingController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        DB::beginTransaction();
+
         try{
             Log::info('Store Passengers Request:', $request->all());
             // Validate the request
             $request->validate([
                 'passengers' => 'required|array|min:1',
                 'passengers.*.type' => 'required|string|in:adult,child,infant',
-                'passengers.*.travellerId' => 'required|string|max:255',
-                'passengers.*.name.first_name' => 'required|string|max:255',
-                'passengers.*.name.last_name' => 'required|string|max:255',
+                'passengers.*.travelerId' => 'required|string|max:255',
+                'passengers.*.name.firstName' => 'required|string|max:255',
+                'passengers.*.name.lastName' => 'required|string|max:255',
                 'passengers.*.date_of_birth' => 'required|date',
                 'passengers.*.email' => 'required|email|max:255',
                 'passengers.*.phone_number' => 'required|string|max:20',
@@ -44,6 +47,8 @@ class BookingController extends Controller
                 'seats' => 'required|array',
                 'flightOffer' => 'required|string'
             ]);
+
+
 
             // Decode the flight offer
             $decodedOffer = base64_decode($request->input('flightOffer'));
@@ -73,9 +78,9 @@ class BookingController extends Controller
                 $passengerCreated = Passenger::create([
                     'booking_id' => $booking->id,
                     'type' => $passenger['type'],
-                    'travellerId' => $passenger['travellerId'],
-                    'first_name' => $passenger['first_name'],
-                    'last_name' => $passenger['last_name'],
+                    'travelerId' => $passenger['travelerId'],
+                    'firstName' => $passenger['name']['firstName'],
+                    'lastName' => $passenger['name']['lastName'],
                     'date_of_birth' => $passenger['date_of_birth'],
                     'email' => $passenger['email'],
                     'phone_number' => $passenger['phone_number'],
@@ -83,6 +88,8 @@ class BookingController extends Controller
                     'birth_certificate_number' => $passenger['birth_certificate_number'] ?? null,
                     'nationality' => $passenger['nationality']
                 ]);
+
+                DB::commit();
 
                 Log::info('Passenger Data:', ['passenger' => $passenger]);
 
@@ -143,8 +150,8 @@ class BookingController extends Controller
                     'contacts' => [
                         [
                             'addresseeName' => [
-                                'firstName' => $request->input('passengers')[0]['first_name'],
-                                'lastName' => $request->input('passengers')[0]['last_name']
+                                'firstName' => $request->input('passengers')[0]['name']['firstName'],
+                                'lastName' => $request->input('passengers')[0]['name']['lastName']
                             ],
                             'companyName' => 'OnlineJetLife',
                             'purpose' => 'STANDARD',
